@@ -39,7 +39,7 @@ export const EXPERIENCE_DATA: ExperienceItem[] = [
   {
     id: "moldavite",
     company: "Moldavite Business Booster",
-    role: "Data Scientist – AI Engineer",
+    role: "Data Analytics & Science",
     period: "06/2025 – Present",
     location: "Vancouver, Canada",
     description: [
