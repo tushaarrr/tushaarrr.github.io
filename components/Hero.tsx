@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { ChevronRight, User, Sliders, X, RefreshCw } from 'lucide-react';
 import { TextReveal } from './ui/TextReveal';
@@ -17,22 +17,37 @@ const PRESETS = [
 
 export const Hero: React.FC<HeroProps> = ({ onOpenStory }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Generator State
   const [showControls, setShowControls] = useState(false);
   const [colors, setColors] = useState<string[]>(PRESETS[0].colors); // Default to Sky Drift
   const [speed, setSpeed] = useState<number>(0.3); // Slow for calm atmosphere
   const [complexity, setComplexity] = useState<number>(4); // Simpler mesh for elegance
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Reduce complexity on mobile for better performance
+      if (window.innerWidth < 768) {
+        setComplexity(3);
+        setSpeed(0.2);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
-  // Parallax Logic
+  // Parallax Logic - Disable on mobile for performance
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"]
   });
 
-  const textY = useTransform(scrollYProgress, [0, 1], [0, 100]); // Text moves down slower
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]); // Fade out
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.95]); // Slight push back
+  const textY = useTransform(scrollYProgress, [0, 1], isMobile ? [0, 0] : [0, 100]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
 
   return (
     <section 
@@ -40,29 +55,36 @@ export const Hero: React.FC<HeroProps> = ({ onOpenStory }) => {
       id="home" 
       className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 overflow-hidden bg-background"
     >
-      {/* Interactive Mesh Generator Background - Soft & Atmospheric */}
-      <div className="absolute inset-0 opacity-80 mix-blend-screen">
-          <MeshGradientBackground colors={colors} speed={speed} complexity={complexity} />
-      </div>
+      {/* Interactive Mesh Generator Background - Soft & Atmospheric - Reduced opacity on mobile */}
+      {!isMobile && (
+        <div className="absolute inset-0 opacity-80 mix-blend-screen">
+            <MeshGradientBackground colors={colors} speed={speed} complexity={complexity} />
+        </div>
+      )}
+      {isMobile && (
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-900/20 to-black opacity-60" />
+      )}
 
-      {/* Control Panel Toggle */}
-      <motion.div 
-        className="absolute bottom-6 right-6 z-30"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
-      >
-        <button
-          onClick={() => setShowControls(!showControls)}
-          className={`p-3 rounded-full backdrop-blur-xl border transition-all duration-300 shadow-xl ${showControls ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10 hover:text-white'}`}
+      {/* Control Panel Toggle - Hidden on mobile */}
+      {!isMobile && (
+        <motion.div 
+          className="absolute bottom-6 right-6 z-30"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
         >
-          {showControls ? <X size={20} /> : <Sliders size={20} />}
-        </button>
-      </motion.div>
+          <button
+            onClick={() => setShowControls(!showControls)}
+            className={`p-3 rounded-full backdrop-blur-xl border transition-all duration-300 shadow-xl ${showControls ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10 hover:text-white'}`}
+          >
+            {showControls ? <X size={20} /> : <Sliders size={20} />}
+          </button>
+        </motion.div>
+      )}
 
-      {/* Generator Controls */}
+      {/* Generator Controls - Desktop only */}
       <AnimatePresence>
-        {showControls && (
+        {showControls && !isMobile && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -155,29 +177,29 @@ export const Hero: React.FC<HeroProps> = ({ onOpenStory }) => {
             <div className="relative">
                 <TextReveal 
                     text="Tushar Shandilya" 
-                    className="font-display text-5xl md:text-7xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-white mb-4"
-                    delay={0.5} 
-                    stagger={0.05}
+                    className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-white mb-4"
+                    delay={isMobile ? 0.2 : 0.5} 
+                    stagger={isMobile ? 0.03 : 0.05}
                 />
-                 {/* Subtle Ambient Glow behind text - Soft Sky */}
-                 <div className="absolute inset-0 bg-sky-900/20 blur-[100px] -z-10 rounded-full" />
+                 {/* Subtle Ambient Glow behind text - Soft Sky - Reduced on mobile */}
+                 <div className="absolute inset-0 bg-sky-900/20 blur-[60px] md:blur-[100px] -z-10 rounded-full" />
             </div>
             
             {/* Secondary Role Title */}
             <TextReveal 
                 text="Data Scientist & AI Product Builder" 
-                className="font-display text-lg md:text-2xl font-medium text-textSecondary tracking-tight"
-                delay={1.5}
-                stagger={0.02}
+                className="font-display text-base sm:text-lg md:text-2xl font-medium text-textSecondary tracking-tight px-4"
+                delay={isMobile ? 0.8 : 1.5}
+                stagger={isMobile ? 0.01 : 0.02}
             />
         </div>
 
         {/* Supporting Copy */}
         <motion.p 
-          initial={{ opacity: 0, y: 10, filter: "blur(5px)" }}
+          initial={{ opacity: 0, y: 10, filter: isMobile ? "blur(0px)" : "blur(5px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 1.2, delay: 2.2, ease: "easeOut" }}
-          className="max-w-xl text-lg md:text-xl text-textSecondary/80 font-sans font-light leading-relaxed tracking-wide"
+          transition={{ duration: isMobile ? 0.8 : 1.2, delay: isMobile ? 1.2 : 2.2, ease: "easeOut" }}
+          className="max-w-xl text-sm sm:text-base md:text-lg lg:text-xl text-textSecondary/80 font-sans font-light leading-relaxed tracking-wide px-4"
         >
           Transforming raw data into intelligent decision systems through multimodal AI and clear storytelling.
         </motion.p>
@@ -186,14 +208,14 @@ export const Hero: React.FC<HeroProps> = ({ onOpenStory }) => {
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 2.8 }}
-          className="flex flex-col sm:flex-row items-center gap-6 pt-6"
+          transition={{ duration: 0.8, delay: isMobile ? 1.5 : 2.8 }}
+          className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-6 w-full sm:w-auto px-4"
         >
           <button 
             onClick={onOpenStory}
-            className="group relative px-8 py-3.5 rounded-full bg-white text-black font-display font-semibold text-base tracking-tight overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)]"
+            className="group relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-white text-black font-display font-semibold text-sm sm:text-base tracking-tight overflow-hidden transition-all duration-500 active:scale-[0.98] sm:hover:scale-[1.02] sm:hover:shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)]"
           >
-             <span className="relative z-10 flex items-center gap-2">
+             <span className="relative z-10 flex items-center justify-center gap-2">
                 About Me 
                 <User size={16} className="opacity-60 group-hover:opacity-100 transition-opacity" />
              </span>
@@ -201,7 +223,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenStory }) => {
           
           <a 
             href="#work"
-            className="group px-8 py-3.5 rounded-full text-textPrimary text-base font-display font-medium tracking-tight transition-all duration-300 hover:text-white flex items-center gap-2 hover:bg-white/5"
+            className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full text-textPrimary text-sm sm:text-base font-display font-medium tracking-tight transition-all duration-300 hover:text-white flex items-center justify-center gap-2 hover:bg-white/5 active:bg-white/10"
           >
             <span>View Work</span>
             <ChevronRight size={16} className="text-textSecondary group-hover:text-white group-hover:translate-x-1 transition-all duration-300" />

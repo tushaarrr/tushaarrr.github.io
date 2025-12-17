@@ -19,14 +19,18 @@ export const ParticleBackground: React.FC = () => {
 
     const createParticles = () => {
       particles = [];
-      const particleCount = Math.min(window.innerWidth * 0.1, 100); // Responsive count
+      // Significantly reduce particles on mobile for better performance
+      const isMobile = window.innerWidth < 768;
+      const particleCount = isMobile 
+        ? Math.min(window.innerWidth * 0.03, 30) // Much fewer on mobile
+        : Math.min(window.innerWidth * 0.1, 100); // Desktop count
       
       for (let i = 0; i < particleCount; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
+          vx: (Math.random() - 0.5) * (isMobile ? 0.3 : 0.5), // Slower on mobile
+          vy: (Math.random() - 0.5) * (isMobile ? 0.3 : 0.5),
           size: Math.random() * 2 + 0.5,
         });
       }
@@ -52,19 +56,21 @@ export const ParticleBackground: React.FC = () => {
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
 
-        // Connect particles
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[j].x - particle.x;
-          const dy = particles[j].y - particle.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+        // Connect particles - Skip on mobile for performance
+        if (window.innerWidth >= 768) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[j].x - particle.x;
+            const dy = particles[j].y - particle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 150) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * (1 - distance / 150)})`;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(particle.x, particle.y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
+            if (distance < 150) {
+              ctx.beginPath();
+              ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * (1 - distance / 150)})`;
+              ctx.lineWidth = 0.5;
+              ctx.moveTo(particle.x, particle.y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.stroke();
+            }
           }
         }
       });

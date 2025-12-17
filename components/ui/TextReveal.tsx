@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, Variants } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { motion, Variants, useReducedMotion } from 'framer-motion';
 
 interface TextRevealProps {
   text: string;
@@ -16,13 +16,23 @@ export const TextReveal: React.FC<TextRevealProps> = ({
   duration = 0.8,
   stagger = 0.03
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const container: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: stagger,
-        delayChildren: delay,
+        staggerChildren: isMobile ? stagger * 0.5 : stagger,
+        delayChildren: isMobile ? delay * 0.5 : delay,
       },
     },
   };
@@ -30,8 +40,8 @@ export const TextReveal: React.FC<TextRevealProps> = ({
   const child: Variants = {
     hidden: { 
       opacity: 0, 
-      y: 20, 
-      filter: "blur(12px)",
+      y: isMobile ? 10 : 20, 
+      filter: (isMobile || shouldReduceMotion) ? "blur(0px)" : "blur(12px)",
       scale: 0.95
     },
     visible: {
@@ -40,7 +50,7 @@ export const TextReveal: React.FC<TextRevealProps> = ({
       filter: "blur(0px)",
       scale: 1,
       transition: {
-        duration: duration,
+        duration: isMobile ? duration * 0.7 : duration,
         ease: [0.2, 0.65, 0.3, 0.9], // Apple-style ease-out-quart
       },
     },

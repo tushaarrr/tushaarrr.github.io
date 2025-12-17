@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface MeshGradientBackgroundProps {
   colors: string[];
@@ -12,19 +12,35 @@ export const MeshGradientBackground: React.FC<MeshGradientBackgroundProps> = ({
   speed,
   complexity
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Generate deterministic but organic starting positions for the gradient nodes
+  // Reduce complexity on mobile
+  const effectiveComplexity = isMobile || shouldReduceMotion ? Math.min(complexity, 2) : complexity;
+  
   const nodes = useMemo(() => {
-    return Array.from({ length: complexity }).map((_, i) => ({
+    return Array.from({ length: effectiveComplexity }).map((_, i) => ({
       id: i,
       // Distribute somewhat randomly across the 100x100 viewbox
       initialX: Math.random() * 80 + 10, 
       initialY: Math.random() * 80 + 10,
       radius: 40 + Math.random() * 30, // Large radii for blending
     }));
-  }, [complexity]);
+  }, [effectiveComplexity]);
 
   // Normalize speed: higher speed value = lower duration
-  const baseDuration = Math.max(5, 40 / Math.max(speed, 0.1));
+  // Slower on mobile for better performance
+  const baseDuration = isMobile 
+    ? Math.max(10, 60 / Math.max(speed, 0.1))
+    : Math.max(5, 40 / Math.max(speed, 0.1));
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-black">
@@ -64,7 +80,11 @@ export const MeshGradientBackground: React.FC<MeshGradientBackgroundProps> = ({
                 cx: node.initialX, 
                 cy: node.initialY 
               }}
-              animate={{
+              animate={shouldReduceMotion ? {
+                cx: node.initialX,
+                cy: node.initialY,
+                scale: 1
+              } : {
                 cx: [
                     node.initialX, 
                     (node.initialX + 30) % 100, 
@@ -79,7 +99,7 @@ export const MeshGradientBackground: React.FC<MeshGradientBackgroundProps> = ({
                 ],
                 scale: [1, 1.2, 0.9, 1]
               }}
-              transition={{
+              transition={shouldReduceMotion ? {} : {
                 duration: baseDuration * (0.8 + Math.random() * 0.4), // Natural variance
                 repeat: Infinity,
                 ease: "easeInOut",
